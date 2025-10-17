@@ -6,15 +6,17 @@ namespace OneBeyondApi.DataAccess
     public class LoanRepository : ILoanRepository
     {
         private readonly IFineRepository _fineRepository;
+        private readonly IReservationRepository _reservationRepository;
         private const decimal DAILY_FINE_RATE = 0.50m; // $0.50 per day overdue
 
-        public LoanRepository(IFineRepository fineRepository)
+        public LoanRepository(IFineRepository fineRepository, IReservationRepository reservationRepository)
         {
             _fineRepository = fineRepository;
+            _reservationRepository = reservationRepository;
         }
 
         // Parameterless constructor for backward compatibility
-        public LoanRepository() : this(new FineRepository())
+        public LoanRepository() : this(new FineRepository(), new ReservationRepository())
         {
         }
 
@@ -105,6 +107,22 @@ namespace OneBeyondApi.DataAccess
                 bookStock.LoanEndDate = null;
 
                 context.SaveChanges();
+
+                // Check if there are any reservations for this book
+                var nextReservation = _reservationRepository.GetNextReservation(returnRequest.BookId);
+                if (nextReservation != null)
+                {
+                    response.Message += $" The book is now reserved for {nextReservation.Borrower.Name}.";
+                    response.NextReservation = new ReservationInfo
+                    {
+                        ReservationId = nextReservation.Id,
+                        BorrowerId = nextReservation.BorrowerId,
+                        BorrowerName = nextReservation.Borrower.Name,
+                        ReservationDate = nextReservation.ReservationDate,
+                        QueuePosition = nextReservation.QueuePosition
+                    };
+                }
+
                 return response;
             }
         }

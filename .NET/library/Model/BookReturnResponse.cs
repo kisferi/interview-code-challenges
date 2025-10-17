@@ -7,5 +7,6 @@ namespace OneBeyondApi.Model
         public Fine? FineIssued { get; set; }
         public decimal? FineAmount { get; set; }
         public int? OverdueDays { get; set; }
+        public ReservationInfo? NextReservation { get; set; }
     }
 }
