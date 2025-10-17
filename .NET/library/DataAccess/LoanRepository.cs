@@ -22,7 +22,7 @@ namespace OneBeyondApi.DataAccess
 
                 // Group by borrower and create the response
                 var borrowerLoans = activeLoans
-                    .GroupBy(x => x.OnLoanTo)
+                    .GroupBy(x => x.OnLoanTo!)
                     .Select(group => new BorrowerLoan
                     {
                         BorrowerId = group.Key.Id,
@@ -39,6 +39,32 @@ namespace OneBeyondApi.DataAccess
                     .ToList();
 
                 return borrowerLoans;
+            }
+        }
+        
+        public bool ReturnBook(BookReturnRequest returnRequest)
+        {
+            using (var context = new LibraryContext())
+            {
+                // Find the book stock entry that matches the book and borrower
+                var bookStock = context.Catalogue
+                    .Include(x => x.OnLoanTo)
+                    .FirstOrDefault(x => x.Book.Id == returnRequest.BookId 
+                                      && x.OnLoanTo != null 
+                                      && x.OnLoanTo.Id == returnRequest.BorrowerId);
+
+                if (bookStock == null)
+                {
+                    // Book not found or not on loan to this borrower
+                    return false;
+                }
+
+                // Clear the loan information to mark the book as returned
+                bookStock.OnLoanTo = null;
+                bookStock.LoanEndDate = null;
+
+                context.SaveChanges();
+                return true;
             }
         }
     }
