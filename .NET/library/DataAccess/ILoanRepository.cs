@@ -5,6 +5,6 @@ namespace OneBeyondApi.DataAccess
     public interface ILoanRepository
     {
         public List<BorrowerLoan> GetActiveLoans();
-        public bool ReturnBook(BookReturnRequest returnRequest);
+        public BookReturnResponse ReturnBook(BookReturnRequest returnRequest);
     }
 }

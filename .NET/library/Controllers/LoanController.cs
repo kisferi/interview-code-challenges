@@ -10,11 +10,13 @@ namespace OneBeyondApi.Controllers
     {
         private readonly ILogger<LoanController> _logger;
         private readonly ILoanRepository _loanRepository;
+        private readonly IFineRepository _fineRepository;
 
-        public LoanController(ILogger<LoanController> logger, ILoanRepository loanRepository)
+        public LoanController(ILogger<LoanController> logger, ILoanRepository loanRepository, IFineRepository fineRepository)
         {
             _logger = logger;
             _loanRepository = loanRepository;
+            _fineRepository = fineRepository;
         }
 
         [HttpGet]
@@ -33,16 +35,32 @@ namespace OneBeyondApi.Controllers
                 return BadRequest("Invalid return request. BookId and BorrowerId are required.");
             }
 
-            bool success = _loanRepository.ReturnBook(returnRequest);
+            var response = _loanRepository.ReturnBook(returnRequest);
             
-            if (success)
+            if (response.Success)
             {
-                return Ok(new { message = "Book returned successfully." });
+                return Ok(response);
             }
             else
             {
-                return NotFound("Book not found or not currently on loan to the specified borrower.");
+                return NotFound(response.Message);
             }
+        }
+
+        [HttpGet]
+        [Route("Fines/{borrowerId}")]
+        public IActionResult GetBorrowerFines(Guid borrowerId, [FromQuery] bool unpaidOnly = false)
+        {
+            if (borrowerId == Guid.Empty)
+            {
+                return BadRequest("Valid BorrowerId is required.");
+            }
+
+            var fines = unpaidOnly 
+                ? _fineRepository.GetUnpaidFinesByBorrower(borrowerId)
+                : _fineRepository.GetAllFinesByBorrower(borrowerId);
+
+            return Ok(fines);
         }
     }
 }
